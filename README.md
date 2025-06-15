@@ -9,7 +9,12 @@
 !git clone --single-branch --branch "codex/모의투자-웹-애플리케이션-개발" https://github.com/wdkq2/roboadivser.git
 %cd roboadivser
 ```
-2. 필요한 패키지를 설치합니다.
+다음 명령으로 파일 목록을 확인했을 때 `requirements.txt` 가 보이지 않는다면
+올바른 브랜치를 클론하지 않은 것이므로 다시 클론해야 합니다.
+```python
+!ls
+```
+2. 필요한 패키지를 설치합니다. 위에서 `requirements.txt` 가 보이는 위치에서 실행하세요.
 ```python
 !pip install -r requirements.txt
 ```
