@@ -1,1 +1,41 @@
 # roboadivser
+
+간단한 로보 어드바이저 예제입니다. 시나리오 기반 투자와 특징 검색 기능을 간단하게 체험할 수 있는 웹 인터페이스를 제공합니다.
+
+## 실행 방법 (Colab)
+1. 새로운 Colab 노트를 열고 아래 명령을 실행해 저장소를 클론합니다.
+   기본 브랜치에는 예제 코드가 없으므로 `codex/모의투자-웹-애플리케이션-개발` 브랜치를 지정해 클론합니다.
+```python
+!git clone --single-branch --branch "codex/모의투자-웹-애플리케이션-개발" https://github.com/wdkq2/roboadivser.git
+%cd roboadivser
+```
+다음 명령으로 파일 목록을 확인했을 때 `requirements.txt` 가 보이지 않는다면
+올바른 브랜치를 클론하지 않은 것이므로 다시 클론해야 합니다.
+```python
+!ls
+```
+2. 필요한 패키지를 설치합니다. 위에서 `requirements.txt` 가 보이는 위치에서 실행하세요.
+```python
+!pip install -r requirements.txt
+```
+3. 앱을 실행합니다. `share=True` 옵션이 적용되어 실행 후 공개 링크가 표시됩니다.
+```python
+!python app.py
+```
+   셀이 실행된 상태를 유지한 채로 "Running on public URL" 다음에 나타나는 링크를 
+   클릭하면 웹 인터페이스를 확인할 수 있습니다.
+
+## 주요 기능
+- **시나리오 투자 탭**: 시나리오 내용과 투자 금액, 뉴스 검색 키워드를 입력하면 시나리오가 기록됩니다. "최신 뉴스 확인" 버튼을 누르면 해당 키워드로 구글 뉴스를 검색해 상위 기사 제목과 링크를 보여줍니다.
+- **특징 검색 탭**: 자연어로 작성된 프롬프트를 해석한 뒤 사용자에게 확인을 받고,
+   확인되면 샘플 DART 데이터를 검색해 회사를 제시합니다. 네트워크 제한 때문에 실제 DART 호출은 포함하지 못하지만, 필요하다면 함수를 수정해 개인 API를 호출할 수 있습니다.
+
+API 키가 있다면 실행 전에 다음 환경 변수를 설정하여 뉴스를 검색하고 DART, 매매 API 예시 코드를 테스트할 수 있습니다. 기본값은 각각 `4bada9597f370d2896444b492c3a92ff9c2d8f96` 와 `PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv` 로 설정되어 있습니다.
+```python
+import os
+os.environ["NEWS_API_KEY"] = "<뉴스 API 키>"  # 선택 사항
+os.environ["DART_API_KEY"] = "4bada9597f370d2896444b492c3a92ff9c2d8f96"
+os.environ["TRADE_API_KEY"] = "PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv"
+```
+
+매매 버튼을 누르면 금액이 포트폴리오에 기록됩니다. 실제 증권사 API를 호출하지 않는 모의 매매 방식이므로 학습용으로 활용하세요.
