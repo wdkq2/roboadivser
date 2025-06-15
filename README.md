@@ -4,8 +4,9 @@
 
 ## 실행 방법 (Colab)
 1. 새로운 Colab 노트를 열고 아래 명령을 실행해 저장소를 클론합니다.
+   기본 브랜치에는 예제 코드가 없으므로 `work` 브랜치를 지정해 클론합니다.
 ```python
-!git clone https://github.com/your-account/roboadivser.git
+!git clone --single-branch --branch work https://github.com/your-account/roboadivser.git
 %cd roboadivser
 ```
 2. 필요한 패키지를 설치합니다.
