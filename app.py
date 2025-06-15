@@ -4,20 +4,33 @@ import gradio as gr
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime
+import threading
+import schedule
+import time
+
+DART_API_KEY = os.getenv("DART_API_KEY") or "4bada9597f370d2896444b492c3a92ff9c2d8f96"
+TRADE_API_KEY = os.getenv("TRADE_API_KEY") or "PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv"
 
 scenarios = []
+news_log = []
 
 # Add scenario and record investment
 
-def add_scenario(desc, amount, keywords):
+def add_scenario(desc, amount, keywords, symbol):
     scenario = {
         "desc": desc,
         "amount": amount,
         "keywords": keywords,
+        "symbol": symbol,
         "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     }
     scenarios.append(scenario)
-    return f"Scenario added:\n{desc}\nInvest: {amount}\nKeywords: {keywords}"
+    schedule.every().day.at("08:00").do(check_news, scenario)
+    trade_msg = execute_trade(symbol, amount)
+    return (
+        f"Scenario added:\n{desc}\nInvest: {amount} in {symbol}\n"
+        f"Keywords: {keywords}\n{trade_msg}"
+    )
 
 # Fetch latest news from Google News
 
@@ -55,6 +68,18 @@ def fetch_news(keywords):
         output.append(f"{title}\n{link}")
     return "\n\n".join(output) if output else "No news found"
 
+
+def check_news(scenario):
+    news = fetch_news(scenario["keywords"])
+    news_log.append({"scenario": scenario["desc"], "news": news, "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")})
+    print(f"News update for {scenario['desc']}:\n{news}")
+
+
+def run_scheduler():
+    while True:
+        schedule.run_pending()
+        time.sleep(1)
+
 # Simple feature query interpretation (placeholder)
 
 def analyze_query(query):
@@ -70,17 +95,38 @@ def analyze_query(query):
 # Provide example results for feature search
 
 def get_dart_data(query):
-    """Placeholder for DART API call."""
-    api_key = os.getenv("DART_API_KEY") or "<dart api>"
-    # Implement actual request to DART using api_key and query
-    return f"Queried {api_key} with '{query}'"
+    """Query DART for company information by name."""
+    params = {
+        "crtfc_key": DART_API_KEY,
+        "corp_name": query,
+    }
+    url = "https://opendart.fss.or.kr/api/company.json"
+    try:
+        r = requests.get(url, params=params, timeout=10)
+        data = r.json()
+    except Exception as e:
+        return f"Request error: {e}"
+    if data.get("status") != "000":
+        return data.get("message", "DART error")
+    items = data.get("list", [])
+    if not items:
+        return "No results"
+    return "\n".join(
+        f"{item.get('corp_name')} ({item.get('corp_code')})" for item in items[:3]
+    )
 
 
 def execute_trade(symbol, amount):
-    """Placeholder for trading API call."""
-    trade_key = os.getenv("TRADE_API_KEY") or "<매매 api>"
-    # Implement actual trade execution here
-    return f"Trade via {trade_key}: buy {amount} of {symbol}"
+    """Execute a mock trade using the provided API key."""
+    url = "https://example.com/trade"
+    payload = {"symbol": symbol, "amount": amount, "key": TRADE_API_KEY}
+    try:
+        r = requests.post(url, json=payload, timeout=10)
+        if r.status_code == 200:
+            return f"Trade executed for {symbol}: {amount}"
+        return f"Trade API error: {r.status_code}"
+    except Exception as e:
+        return f"Request error: {e}"
 
 
 def example_results(query):
@@ -93,10 +139,11 @@ with gr.Blocks() as demo:
     with gr.Tab("시나리오 투자"):
         scenario_text = gr.Textbox(label="시나리오 내용")
         amount = gr.Textbox(label="투자 금액 (원)")
+        symbol = gr.Textbox(label="종목 코드")
         keywords = gr.Textbox(label="뉴스 검색 키워드")
         add_btn = gr.Button("시나리오 추가")
         scenario_out = gr.Textbox(label="상태")
-        add_btn.click(add_scenario, [scenario_text, amount, keywords], scenario_out)
+        add_btn.click(add_scenario, [scenario_text, amount, keywords, symbol], scenario_out)
         news_btn = gr.Button("최신 뉴스 확인")
         news_out = gr.Textbox(label="뉴스 결과")
         news_btn.click(fetch_news, keywords, news_out)
@@ -110,10 +157,9 @@ with gr.Blocks() as demo:
         confirm_btn.click(example_results, feature_query, results)
 
     gr.Markdown(
-        "작동 예시이므로 실제 매매나 DART 연결 기능은 구현되어 있지 않습니다. "
-        "NEWS_API_KEY, DART_API_KEY, TRADE_API_KEY 환경 변수를 설정하면 각 API 호출 코드에 사용할 수 있습니다."
+        "NEWS_API_KEY가 있으면 뉴스API를 사용하고, DART_API_KEY와 TRADE_API_KEY는 기본값이 제공되어 바로 테스트할 수 있습니다."
     )
 
 if __name__ == "__main__":
-    # share=True enables a public link for environments like Colab
+    threading.Thread(target=run_scheduler, daemon=True).start()
     demo.launch(share=True)

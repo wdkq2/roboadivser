@@ -35,9 +35,10 @@
 API 키가 있다면 실행 전에 다음 환경 변수를 설정하여 뉴스를 검색하고 DART, 매매 API 예시 코드를 테스트할 수 있습니다.
 ```python
 import os
-os.environ["NEWS_API_KEY"] = "<뉴스 API 키>"
-os.environ["DART_API_KEY"] = "<dart api>"
-os.environ["TRADE_API_KEY"] = "<매매 api>"
+os.environ["NEWS_API_KEY"] = "<뉴스 API 키>"  # 선택 사항
+# 예제에서 기본값으로 제공되는 DART, 매매 API 키
+os.environ["DART_API_KEY"] = "4bada9597f370d2896444b492c3a92ff9c2d8f96"
+os.environ["TRADE_API_KEY"] = "PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv"
 ```
 
 이 예제는 학습용으로 작성되었으며, 실제 매매나 데이터 제공 기능은 포함되어 있지 않습니다.
