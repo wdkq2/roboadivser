@@ -1,3 +1,5 @@
+import os
+import re
 import gradio as gr
 import requests
 from bs4 import BeautifulSoup
@@ -20,9 +22,27 @@ def add_scenario(desc, amount, keywords):
 # Fetch latest news from Google News
 
 def fetch_news(keywords):
-    url = f"https://news.google.com/search?q={keywords}&hl=en-US&gl=US&ceid=US:en"
+    """Return the top 3 news articles for the given keywords."""
+    api_key = os.getenv("NEWS_API_KEY")
+    if api_key:
+        url = (
+            f"https://newsapi.org/v2/everything?q={keywords}&language=en&sortBy=publishedAt&apiKey={api_key}"
+        )
+        try:
+            r = requests.get(url, timeout=10)
+            data = r.json()
+        except Exception as e:
+            return f"Request error: {e}"
+        articles = data.get("articles", [])[:3]
+        if not articles:
+            return "No news found"
+        return "\n\n".join(
+            f"{a.get('title')}\n{a.get('url')}" for a in articles
+        )
+    url = "https://news.google.com/search"
+    params = {"q": keywords, "hl": "en-US", "gl": "US", "ceid": "US:en"}
     try:
-        r = requests.get(url, timeout=10)
+        r = requests.get(url, params=params, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
     except Exception as e:
         return f"Request error: {e}"
     soup = BeautifulSoup(r.text, "html.parser")
@@ -30,24 +50,43 @@ def fetch_news(keywords):
     output = []
     for item in items[:3]:
         title = item.text.strip()
-        link = "https://news.google.com" + item.get("href", "")[1:]
+        href = item.get("href", "")
+        link = "https://news.google.com" + href[1:] if href.startswith("/") else href
         output.append(f"{title}\n{link}")
     return "\n\n".join(output) if output else "No news found"
 
 # Simple feature query interpretation (placeholder)
 
 def analyze_query(query):
-    if "배당" in query:
-        return "Request: top dividend yield companies"
+    """Very naive interpretation of a natural language query."""
+    m = re.search(r"배당률.*?(\d+)\D*위", query)
+    if m:
+        n = m.group(1)
+        return f"배당률 상위 {n}개 기업을 찾습니다. 맞습니까?"
     if "자사주" in query and "소각" in query:
-        return "Request: companies with high treasury stock not cancelled"
-    return "Request not recognized"
+        return "자사주 보유가 많고 소각하지 않는 회사를 찾습니다. 맞습니까?"
+    return "요청을 이해하지 못했습니다."
 
 # Provide example results for feature search
 
+def get_dart_data(query):
+    """Placeholder for DART API call."""
+    api_key = os.getenv("DART_API_KEY") or "<dart api>"
+    # Implement actual request to DART using api_key and query
+    return f"Queried {api_key} with '{query}'"
+
+
+def execute_trade(symbol, amount):
+    """Placeholder for trading API call."""
+    trade_key = os.getenv("TRADE_API_KEY") or "<매매 api>"
+    # Implement actual trade execution here
+    return f"Trade via {trade_key}: buy {amount} of {symbol}"
+
+
 def example_results(query):
-    # This is placeholder logic. Replace with actual DART queries.
-    return "Example Companies:\n회사A\n회사B\n회사C"
+    """Return placeholder search results using DART."""
+    data = get_dart_data(query)
+    return f"검색 결과 예시\n{data}\n회사A\n회사B\n회사C"
 
 with gr.Blocks() as demo:
     gr.Markdown("## 간단한 로보 어드바이저 예제")
@@ -66,11 +105,14 @@ with gr.Blocks() as demo:
         analyze_btn = gr.Button("프롬프트 해석")
         analysis = gr.Textbox(label="해석 결과")
         analyze_btn.click(analyze_query, feature_query, analysis)
-        search_btn = gr.Button("예시 데이터 출력")
+        confirm_btn = gr.Button("해석 확인 후 검색")
         results = gr.Textbox(label="검색 결과")
-        search_btn.click(example_results, feature_query, results)
+        confirm_btn.click(example_results, feature_query, results)
 
-    gr.Markdown("작동 예시이므로 실제 매매나 DART 연결 기능은 구현되어 있지 않습니다.")
+    gr.Markdown(
+        "작동 예시이므로 실제 매매나 DART 연결 기능은 구현되어 있지 않습니다. "
+        "NEWS_API_KEY, DART_API_KEY, TRADE_API_KEY 환경 변수를 설정하면 각 API 호출 코드에 사용할 수 있습니다."
+    )
 
 if __name__ == "__main__":
     # share=True enables a public link for environments like Colab
