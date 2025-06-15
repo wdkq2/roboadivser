@@ -73,4 +73,4 @@ with gr.Blocks() as demo:
     gr.Markdown("작동 예시이므로 실제 매매나 DART 연결 기능은 구현되어 있지 않습니다.")
 
 if __name__ == "__main__":
-    demo.launch()
+    demo.launch(share=True)
