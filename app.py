@@ -3,16 +3,29 @@ import re
 import gradio as gr
 import requests
 from bs4 import BeautifulSoup
+import xml.etree.ElementTree as ET
 from datetime import datetime
 import threading
 import schedule
 import time
 
-DART_API_KEY = os.getenv("DART_API_KEY") or "4bada9597f370d2896444b492c3a92ff9c2d8f96"
-TRADE_API_KEY = os.getenv("TRADE_API_KEY") or "PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv"
+DART_API_KEY = os.getenv("DART_API_KEY") or "<dart api>"
+TRADE_API_KEY = os.getenv("TRADE_API_KEY") or "<매매 api>"
 
 scenarios = []
 news_log = []
+
+# sample financial data for dividend yield calculation (예시)
+sample_financials = [
+    {"corp_name": "삼성전자", "symbol": "005930", "dps": 361, "price": 70000},
+    {"corp_name": "현대차", "symbol": "005380", "dps": 3000, "price": 200000},
+    {"corp_name": "NAVER", "symbol": "035420", "dps": 667, "price": 150000},
+    {"corp_name": "카카오", "symbol": "035720", "dps": 0, "price": 60000},
+    {"corp_name": "LG화학", "symbol": "051910", "dps": 12000, "price": 350000},
+]
+
+# analyzed query state
+analysis_state = {}
 
 # Add scenario and record investment
 
@@ -26,10 +39,9 @@ def add_scenario(desc, amount, keywords, symbol):
     }
     scenarios.append(scenario)
     schedule.every().day.at("08:00").do(check_news, scenario)
-    trade_msg = execute_trade(symbol, amount)
     return (
         f"Scenario added:\n{desc}\nInvest: {amount} in {symbol}\n"
-        f"Keywords: {keywords}\n{trade_msg}"
+        f"Keywords: {keywords}\nPress '매매 실행' to trade"
     )
 
 # Fetch latest news from Google News
@@ -52,19 +64,18 @@ def fetch_news(keywords):
         return "\n\n".join(
             f"{a.get('title')}\n{a.get('url')}" for a in articles
         )
-    url = "https://news.google.com/search"
+    url = "https://news.google.com/rss/search"
     params = {"q": keywords, "hl": "en-US", "gl": "US", "ceid": "US:en"}
     try:
         r = requests.get(url, params=params, headers={"User-Agent": "Mozilla/5.0"}, timeout=10)
     except Exception as e:
         return f"Request error: {e}"
-    soup = BeautifulSoup(r.text, "html.parser")
-    items = soup.select("article h3 a")
+    root = ET.fromstring(r.text)
+    items = root.findall("./channel/item")
     output = []
     for item in items[:3]:
-        title = item.text.strip()
-        href = item.get("href", "")
-        link = "https://news.google.com" + href[1:] if href.startswith("/") else href
+        title = item.findtext("title", default="")
+        link = item.findtext("link", default="")
         output.append(f"{title}\n{link}")
     return "\n\n".join(output) if output else "No news found"
 
@@ -86,11 +97,28 @@ def analyze_query(query):
     """Very naive interpretation of a natural language query."""
     m = re.search(r"배당률.*?(\d+)\D*위", query)
     if m:
-        n = m.group(1)
+        n = int(m.group(1))
+        analysis_state['query'] = query
+        analysis_state['type'] = 'dividend'
+        analysis_state['count'] = n
         return f"배당률 상위 {n}개 기업을 찾습니다. 맞습니까?"
     if "자사주" in query and "소각" in query:
+        analysis_state['query'] = query
+        analysis_state['type'] = 'buyback'
         return "자사주 보유가 많고 소각하지 않는 회사를 찾습니다. 맞습니까?"
     return "요청을 이해하지 못했습니다."
+
+def dividend_rank(n):
+    ranked = sorted(
+        sample_financials,
+        key=lambda x: (x['dps'] / x['price'] if x['price'] else 0),
+        reverse=True,
+    )
+    out = []
+    for comp in ranked[:n]:
+        pct = comp['dps'] / comp['price'] * 100 if comp['price'] else 0
+        out.append(f"{comp['corp_name']}({comp['symbol']}): {pct:.2f}%")
+    return "\n".join(out)
 
 # Provide example results for feature search
 
@@ -134,6 +162,14 @@ def example_results(query):
     data = get_dart_data(query)
     return f"검색 결과 예시\n{data}\n회사A\n회사B\n회사C"
 
+def perform_query(_=None):
+    if analysis_state.get('type') == 'dividend':
+        n = analysis_state.get('count', 0)
+        return dividend_rank(n)
+    elif analysis_state.get('type') == 'buyback':
+        return "자사주 보유량 데이터 예시"
+    return "분석된 내용이 없습니다."
+
 with gr.Blocks() as demo:
     gr.Markdown("## 간단한 로보 어드바이저 예제")
     with gr.Tab("시나리오 투자"):
@@ -144,6 +180,9 @@ with gr.Blocks() as demo:
         add_btn = gr.Button("시나리오 추가")
         scenario_out = gr.Textbox(label="상태")
         add_btn.click(add_scenario, [scenario_text, amount, keywords, symbol], scenario_out)
+        trade_btn = gr.Button("매매 실행")
+        trade_result = gr.Textbox(label="매매 결과")
+        trade_btn.click(execute_trade, [symbol, amount], trade_result)
         news_btn = gr.Button("최신 뉴스 확인")
         news_out = gr.Textbox(label="뉴스 결과")
         news_btn.click(fetch_news, keywords, news_out)
@@ -152,9 +191,11 @@ with gr.Blocks() as demo:
         analyze_btn = gr.Button("프롬프트 해석")
         analysis = gr.Textbox(label="해석 결과")
         analyze_btn.click(analyze_query, feature_query, analysis)
-        confirm_btn = gr.Button("해석 확인 후 검색")
+        confirm_btn = gr.Button("해석 확인")
+        cancel_btn = gr.Button("취소")
         results = gr.Textbox(label="검색 결과")
-        confirm_btn.click(example_results, feature_query, results)
+        confirm_btn.click(perform_query, None, results)
+        cancel_btn.click(lambda: "취소되었습니다.", None, results)
 
     gr.Markdown(
         "NEWS_API_KEY가 있으면 뉴스API를 사용하고, DART_API_KEY와 TRADE_API_KEY는 기본값이 제공되어 바로 테스트할 수 있습니다."
