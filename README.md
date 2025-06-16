@@ -33,9 +33,9 @@
 ```python
 import os
 os.environ["NEWS_API_KEY"] = "<뉴스 API 키>"  # 선택 사항
-os.environ["DART_API_KEY"] = "4bada9597f370d2896444b492c3a92ff9c2d8f96"  # DART 키
-os.environ["TRADE_API_KEY"] = "PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv"  # 앱 키
-os.environ["TRADE_API_SECRET"] = "Vt/gy4uGEAhWT2Tn0DE6IK2u+CBt752yHht/VXcjJUk7NzgZkx3lVoSDHvj/G2+RZNxBBjxEn2ReYQKquoh5BJi9f4KKomsYxJ3cyQ6noTyb0ep1OHD/xIe3w2Y9h+eb0PG7hxwhZBmWwPO6VQq9KRXZockUH5qNTbDosA6mfbKssmxWL2o="  # 앱 시크릿
+os.environ["DART_API_KEY"] = "<dart api>"  # DART 키
+os.environ["TRADE_API_KEY"] = "<매매 api>"  # 앱 키
+os.environ["TRADE_API_SECRET"] = "<매매 secret>"  # 앱 시크릿
 os.environ["TRADE_ACCOUNT"] = "<계좌번호>"  # 예) 12345678
 os.environ["TRADE_PRODUCT_CODE"] = "01"  # 계좌상품코드
 os.environ["TRADE_API_URL"] = "https://openapivts.koreainvestment.com:29443"  # 모의투자 URL

@@ -10,17 +10,9 @@ import time
 import json
 import hashlib
 
-DART_API_KEY = (
-    os.getenv("DART_API_KEY")
-    or "4bada9597f370d2896444b492c3a92ff9c2d8f96"
-)
-TRADE_API_KEY = os.getenv(
-    "TRADE_API_KEY", "PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv"
-)
-TRADE_API_SECRET = os.getenv(
-    "TRADE_API_SECRET",
-    "Vt/gy4uGEAhWT2Tn0DE6IK2u+CBt752yHht/VXcjJUk7NzgZkx3lVoSDHvj/G2+RZNxBBjxEn2ReYQKquoh5BJi9f4KKomsYxJ3cyQ6noTyb0ep1OHD/xIe3w2Y9h+eb0PG7hxwhZBmWwPO6VQq9KRXZockUH5qNTbDosA6mfbKssmxWL2o=",
-)
+DART_API_KEY = os.getenv("DART_API_KEY", "<dart api>")
+TRADE_API_KEY = os.getenv("TRADE_API_KEY", "<매매 api>")
+TRADE_API_SECRET = os.getenv("TRADE_API_SECRET", "<매매 secret>")
 TRADE_API_URL = os.getenv(
     "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
 )
@@ -287,7 +279,7 @@ with gr.Blocks() as demo:
         cancel_btn.click(lambda: "취소되었습니다.", None, results)
 
     gr.Markdown(
-        "NEWS_API_KEY가 있으면 뉴스API를 사용하고, DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 설정하면 실 거래 API를 호출합니다."
+        "환경 변수에 NEWS_API_KEY, DART_API_KEY, TRADE_API_KEY, TRADE_API_SECRET 등을 설정하면 실제 API를 호출할 수 있습니다."
     )
 
 if __name__ == "__main__":
