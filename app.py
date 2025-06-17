@@ -7,11 +7,27 @@ from datetime import datetime
 import threading
 import schedule
 import time
+import json
+import hashlib
+=======
 
 DART_API_KEY = (
     os.getenv("DART_API_KEY")
     or "4bada9597f370d2896444b492c3a92ff9c2d8f96"
 )
+TRADE_API_KEY = os.getenv(
+    "TRADE_API_KEY", "PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv"
+)
+TRADE_API_SECRET = os.getenv(
+    "TRADE_API_SECRET",
+    "Vt/gy4uGEAhWT2Tn0DE6IK2u+CBt752yHht/VXcjJUk7NzgZkx3lVoSDHvj/G2+RZNxBBjxEn2ReYQKquoh5BJi9f4KKomsYxJ3cyQ6noTyb0ep1OHD/xIe3w2Y9h+eb0PG7hxwhZBmWwPO6VQq9KRXZockUH5qNTbDosA6mfbKssmxWL2o=",
+)
+TRADE_API_URL = os.getenv(
+    "TRADE_API_URL", "https://openapivts.koreainvestment.com:29443"
+)
+TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "")
+TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
+=======
 TRADE_API_KEY = (
     os.getenv("TRADE_API_KEY")
     or "PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv"
@@ -21,6 +37,52 @@ scenarios = []
 news_log = []
 portfolio = {}
 
+
+def get_access_token():
+    """Retrieve an access token for the trading API."""
+    token_url = f"{TRADE_API_URL}/oauth2/tokenP"
+    payload = {
+        "grant_type": "client_credentials",
+        "appkey": TRADE_API_KEY,
+        "appsecret": TRADE_API_SECRET,
+    }
+    try:
+        r = requests.post(
+            token_url,
+            headers={"content-type": "application/json; charset=utf-8"},
+            json=payload,
+            timeout=10,
+        )
+        r.raise_for_status()
+        data = r.json()
+        return data.get("access_token")
+    except Exception as e:
+        print("Token error", e)
+        return None
+
+
+def make_hashkey(data):
+    """Compute hash key using the hashkey endpoint."""
+    url = f"{TRADE_API_URL}/uapi/hashkey"
+    try:
+        r = requests.post(
+            url,
+            headers={
+                "content-type": "application/json; charset=utf-8",
+                "appkey": TRADE_API_KEY,
+                "appsecret": TRADE_API_SECRET,
+            },
+            json=data,
+            timeout=10,
+        )
+        r.raise_for_status()
+        return r.json().get("HASH")
+    except Exception as e:
+        print("Hashkey error", e)
+        body = json.dumps(data, separators=(",", ":"))
+        return hashlib.sha256(body.encode()).hexdigest()
+
+=======
 # sample financial data for dividend yield calculation (예시)
 sample_financials = [
     {"corp_name": "삼성전자", "symbol": "005930", "corp_code": "005930", "dps": 361, "price": 70000},
@@ -128,6 +190,69 @@ def dividend_rank(n):
 
 # Provide example results for feature search
 
+corp_map = {item["corp_name"]: item["corp_code"] for item in sample_financials}
+
+def get_dart_data(name):
+    """Fetch company information from the DART API."""
+    code = corp_map.get(name)
+    if not code:
+        return "Company not found"
+    try:
+        resp = requests.get(
+            "https://opendart.fss.or.kr/api/company.json",
+            params={"crtfc_key": DART_API_KEY, "corp_code": code},
+            timeout=10,
+        )
+        resp.raise_for_status()
+        return resp.text
+    except Exception as e:
+        return f"Request error: {e}"
+
+
+def execute_trade(symbol, qty):
+    """Send an order to the trading API using the Korea Investment mock endpoint."""
+    try:
+        q = int(float(qty))
+    except ValueError:
+        return "Invalid amount"
+
+    token = get_access_token()
+    if not token:
+        return "Failed to get access token"
+
+    body = {
+        "CANO": TRADE_ACCOUNT,
+        "ACNT_PRDT_CD": TRADE_PRODUCT_CODE,
+        "PDNO": symbol,
+        "ORD_DVSN": "01",  # market order
+        "ORD_QTY": str(q),
+        "ORD_UNPR": "0",
+    }
+    hashkey = make_hashkey(body)
+    headers = {
+        "content-type": "application/json; charset=utf-8",
+        "authorization": f"Bearer {token}",
+        "appkey": TRADE_API_KEY,
+        "appsecret": TRADE_API_SECRET,
+        "tr_id": "VTTC0012U",
+        "custtype": "P",
+        "hashkey": hashkey,
+    }
+    try:
+        resp = requests.post(
+            f"{TRADE_API_URL}/uapi/domestic-stock/v1/trading/order-cash",
+            json=body,
+            headers=headers,
+            timeout=10,
+        )
+        resp.raise_for_status()
+        data = resp.json()
+        portfolio[symbol] = portfolio.get(symbol, 0) + q
+        msg = data.get("msg1", "trade executed")
+        return f"{msg} 현재 보유 {portfolio[symbol]}주"
+    except Exception as e:
+        return f"Trade error: {e}"
+=======
 def get_dart_data(query):
     """Return company info from sample data matching the query."""
     results = []
@@ -187,7 +312,10 @@ with gr.Blocks() as demo:
         cancel_btn.click(lambda: "취소되었습니다.", None, results)
 
     gr.Markdown(
+        "NEWS_API_KEY가 있으면 뉴스API를 사용하고, DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 설정하면 실 거래 API를 호출합니다."
+=======
         "NEWS_API_KEY가 있으면 뉴스API를 사용하고, DART_API_KEY와 TRADE_API_KEY는 기본값이 제공되어 바로 테스트할 수 있습니다."
+
     )
 
 if __name__ == "__main__":
