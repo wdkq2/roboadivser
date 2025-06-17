@@ -4,9 +4,15 @@
 
 ## 실행 방법 (Colab)
 1. 새로운 Colab 노트를 열고 아래 명령을 실행해 저장소를 클론합니다.
+<6t0yr5-codex/모의투자-웹-애플리케이션-개발
     기본 브랜치에는 예제 코드가 없으므로 `work` 브랜치를 지정해 클론합니다.
 ```python
 !git clone --single-branch --branch work https://github.com/wdkq2/roboadivser.git
+=======
+   기본 브랜치에는 예제 코드가 없으므로 `codex/모의투자-웹-애플리케이션-개발` 브랜치를 지정해 클론합니다.
+```python
+!git clone --single-branch --branch "codex/모의투자-웹-애플리케이션-개발" https://github.com/wdkq2/roboadivser.git
+> main
 %cd roboadivser
 ```
 다음 명령으로 파일 목록을 확인했을 때 `requirements.txt` 가 보이지 않는다면
@@ -27,6 +33,7 @@
 
 ## 주요 기능
 - **시나리오 투자 탭**: 시나리오 내용과 투자 금액, 뉴스 검색 키워드를 입력하면 시나리오가 기록됩니다. "최신 뉴스 확인" 버튼을 누르면 해당 키워드로 구글 뉴스를 검색해 상위 기사 제목과 링크를 보여줍니다.
+< 6t0yr5-codex/모의투자-웹-애플리케이션-개발
 - **특징 검색 탭**: 자연어로 작성된 프롬프트를 해석해 확인을 받은 뒤 실제 DART API를 호출해 회사를 검색하고, 필요하다면 매매 API로 거래를 실행합니다.
 
 실제 API를 사용하려면 실행 전에 다음 환경 변수를 설정해야 합니다. 기본값은 예제 키이며, 필요하다면 매매 API URL도 지정합니다.
@@ -43,3 +50,17 @@ os.environ["TRADE_API_URL"] = "https://openapivts.koreainvestment.com:29443"  # 
 
 매매 버튼을 누르면 설정된 매매 API로 주문이 전송됩니다. 키와 URL을 실제 서비스에 맞게 변경해 사용하세요.
 계좌번호와 상품코드는 실제 본인의 정보를 입력해야 하며, 위 예시는 모의투자 서버 기준입니다.
+=======
+- **특징 검색 탭**: 자연어로 작성된 프롬프트를 해석한 뒤 사용자에게 확인을 받고,
+   확인되면 샘플 DART 데이터를 검색해 회사를 제시합니다. 네트워크 제한 때문에 실제 DART 호출은 포함하지 못하지만, 필요하다면 함수를 수정해 개인 API를 호출할 수 있습니다.
+
+API 키가 있다면 실행 전에 다음 환경 변수를 설정하여 뉴스를 검색하고 DART, 매매 API 예시 코드를 테스트할 수 있습니다. 기본값은 각각 `4bada9597f370d2896444b492c3a92ff9c2d8f96` 와 `PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv` 로 설정되어 있습니다.
+```python
+import os
+os.environ["NEWS_API_KEY"] = "<뉴스 API 키>"  # 선택 사항
+os.environ["DART_API_KEY"] = "4bada9597f370d2896444b492c3a92ff9c2d8f96"
+os.environ["TRADE_API_KEY"] = "PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv"
+```
+
+매매 버튼을 누르면 금액이 포트폴리오에 기록됩니다. 실제 증권사 API를 호출하지 않는 모의 매매 방식이므로 학습용으로 활용하세요.
+> main

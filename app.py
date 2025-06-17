@@ -9,6 +9,7 @@ import schedule
 import time
 import json
 import hashlib
+=======
 
 DART_API_KEY = (
     os.getenv("DART_API_KEY")
@@ -26,6 +27,11 @@ TRADE_API_URL = os.getenv(
 )
 TRADE_ACCOUNT = os.getenv("TRADE_ACCOUNT", "")
 TRADE_PRODUCT_CODE = os.getenv("TRADE_PRODUCT_CODE", "01")
+=======
+TRADE_API_KEY = (
+    os.getenv("TRADE_API_KEY")
+    or "PShKdxdOkJXLjBKTVLAbh2c2V5RrX3klIRXv"
+)
 
 scenarios = []
 news_log = []
@@ -76,6 +82,7 @@ def make_hashkey(data):
         body = json.dumps(data, separators=(",", ":"))
         return hashlib.sha256(body.encode()).hexdigest()
 
+=======
 # sample financial data for dividend yield calculation (예시)
 sample_financials = [
     {"corp_name": "삼성전자", "symbol": "005930", "corp_code": "005930", "dps": 361, "price": 70000},
@@ -245,6 +252,24 @@ def execute_trade(symbol, qty):
         return f"{msg} 현재 보유 {portfolio[symbol]}주"
     except Exception as e:
         return f"Trade error: {e}"
+=======
+def get_dart_data(query):
+    """Return company info from sample data matching the query."""
+    results = []
+    for item in sample_financials:
+        if query in item["corp_name"]:
+            results.append(f"{item['corp_name']} ({item['corp_code']})")
+    return "\n".join(results) if results else "No results"
+
+
+def execute_trade(symbol, amount):
+    """Record a mock trade locally."""
+    try:
+        amt = float(amount)
+    except ValueError:
+        return "Invalid amount"
+    portfolio[symbol] = portfolio.get(symbol, 0) + amt
+    return f"매매 완료: {symbol} {amt}원 보유량 {portfolio[symbol]}원"
 
 
 def example_results(query):
@@ -288,6 +313,9 @@ with gr.Blocks() as demo:
 
     gr.Markdown(
         "NEWS_API_KEY가 있으면 뉴스API를 사용하고, DART_API_KEY와 TRADE_API_KEY, TRADE_API_URL을 설정하면 실 거래 API를 호출합니다."
+=======
+        "NEWS_API_KEY가 있으면 뉴스API를 사용하고, DART_API_KEY와 TRADE_API_KEY는 기본값이 제공되어 바로 테스트할 수 있습니다."
+
     )
 
 if __name__ == "__main__":
